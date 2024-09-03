@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/diegoasanch/line_counter/counter"
 	"github.com/urfave/cli/v2"
@@ -13,7 +14,7 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:  "line_counter",
+		Name:  "Line counter",
 		Usage: "Count lines of code in a directory",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -22,20 +23,43 @@ func main() {
 				Usage:    "Directory to count lines in",
 				Required: true,
 			},
+			&cli.BoolFlag{
+				Name:    "separate",
+				Aliases: []string{"s"},
+				Usage:   "Get separate per-file count",
+				Value:   false,
+			},
+			&cli.BoolFlag{
+				Name:    "time",
+				Aliases: []string{"t"},
+				Usage:   "Show total execution time",
+				Value:   false,
+			},
 		},
 		Action: func(c *cli.Context) error {
+			startTime := time.Now()
+
 			dirPath := c.String("dir")
 			if dirPath == "" {
 				return fmt.Errorf("directory path is required")
 			}
 
+			separateCount := c.Bool("separate")
+			showTime := c.Bool("time")
+
 			ignorePath := filepath.Join("./", "IGNORE.txt")
-			summary, err := counter.Count(dirPath, ignorePath)
+			summary, err := counter.Count(dirPath, ignorePath, separateCount)
 			if err != nil {
 				return fmt.Errorf("[ERROR] %w", err)
 			}
 
-			printSummary(summary)
+			printSummary(summary, separateCount)
+
+			if showTime {
+				executionTime := time.Since(startTime).Seconds()
+				fmt.Printf("\nExecution time: %.2f seconds\n", executionTime)
+			}
+
 			return nil
 		},
 	}
@@ -48,28 +72,30 @@ func main() {
 
 }
 
-func printSummary(summary counter.FileTypeSummary) {
+func printSummary(summary counter.FileTypeSummary, separateCount bool) {
 	fmt.Printf("%-30s %10s\n", "Total lines:", formatNumber(summary.TotalLines))
 
-	fmt.Println(strings.Repeat("-", 41))
 	// Create a slice of key-value pairs for sorting
-	type kv struct {
-		Key   string
-		Value int
-	}
-	var sortedCounts []kv
-	for k, v := range summary.TypeCounts {
-		sortedCounts = append(sortedCounts, kv{k, v})
-	}
+	if separateCount {
+		fmt.Println(strings.Repeat("-", 41))
+		type kv struct {
+			Key   string
+			Value int
+		}
+		var sortedCounts []kv
+		for k, v := range summary.Counts {
+			sortedCounts = append(sortedCounts, kv{k, v})
+		}
 
-	// Sort by value (line count) in descending order
-	sort.Slice(sortedCounts, func(i, j int) bool {
-		return sortedCounts[i].Value > sortedCounts[j].Value
-	})
+		// Sort by value (line count) in descending order
+		sort.Slice(sortedCounts, func(i, j int) bool {
+			return sortedCounts[i].Value > sortedCounts[j].Value
+		})
 
-	// Print sorted results
-	for _, kv := range sortedCounts {
-		fmt.Printf("%-30s %10s\n", kv.Key, formatNumber(kv.Value))
+		// Print sorted results
+		for _, kv := range sortedCounts {
+			fmt.Printf("%-30s %10s\n", kv.Key, formatNumber(kv.Value))
+		}
 	}
 }
 

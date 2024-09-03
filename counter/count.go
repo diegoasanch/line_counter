@@ -9,16 +9,16 @@ import (
 	ignore "github.com/sabhiram/go-gitignore"
 )
 
-// FileTypeSummary represents the summary of line counts for each file type
+// FileTypeSummary represents the summary of line counts
 type FileTypeSummary struct {
 	TotalLines int
-	TypeCounts map[string]int
+	Counts     map[string]int // Renamed from TypeCounts to Counts
 }
 
-func Count(dirPath string, ignorePath string) (FileTypeSummary, error) {
+func Count(dirPath string, ignorePath string, separateCount bool) (FileTypeSummary, error) {
 	summary := FileTypeSummary{
 		TotalLines: 0,
-		TypeCounts: make(map[string]int),
+		Counts:     make(map[string]int),
 	}
 	ignore, err := ignore.CompileIgnoreFile(ignorePath)
 
@@ -48,12 +48,14 @@ func Count(dirPath string, ignorePath string) (FileTypeSummary, error) {
 		}
 		summary.TotalLines += lineCount
 
-		// Get file extension or name if no extension
-		fileType := filepath.Ext(path)
-		if fileType == "" {
-			fileType = filepath.Base(path)
+		if separateCount {
+			// Get file extension or name if no extension
+			fileType := filepath.Ext(path)
+			if fileType == "" {
+				fileType = filepath.Base(path)
+			}
+			summary.Counts[fileType] += lineCount
 		}
-		summary.TypeCounts[fileType] += lineCount
 
 		return nil
 	})
