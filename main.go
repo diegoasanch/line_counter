@@ -21,7 +21,7 @@ func main() {
 		Flags:                  flags,
 		ArgsUsage:              "DIRECTORY",
 		Action:                 action,
-		Version:                "0.0.1",
+		Version:                "0.0.2",
 		EnableBashCompletion:   true,
 	}
 
@@ -76,7 +76,7 @@ func action(c *cli.Context) error {
 	}
 
 	dirPath := c.Args().Get(0)
-	ignorePath := filepath.Join("./", "IGNORE.txt")
+	ignorePath := c.String("ignore")
 
 	summary, err := counter.Count(dirPath, ignorePath, cfg.SeparateCount)
 	if err != nil {
