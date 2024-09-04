@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -31,6 +32,12 @@ func main() {
 				Usage:   "Show total execution time",
 				Value:   false,
 			},
+			&cli.BoolFlag{
+				Name:    "json",
+				Aliases: []string{"j"},
+				Usage:   "Print output in JSON format",
+				Value:   false,
+			},
 		},
 		ArgsUsage: "DIRECTORY",
 		Action: func(c *cli.Context) error {
@@ -43,6 +50,7 @@ func main() {
 
 			separateCount := c.Bool("separate")
 			showTime := c.Bool("time")
+			jsonOutput := c.Bool("json")
 
 			ignorePath := filepath.Join("./", "IGNORE.txt")
 			summary, err := counter.Count(dirPath, ignorePath, separateCount)
@@ -50,11 +58,11 @@ func main() {
 				return fmt.Errorf("[ERROR] %w", err)
 			}
 
-			printSummary(summary, separateCount)
-
-			if showTime {
-				executionTime := time.Since(startTime).Seconds()
-				fmt.Printf("\nExecution time: %.2f seconds\n", executionTime)
+			executionTime := time.Since(startTime).Seconds()
+			if jsonOutput {
+				PrintJsonSummary(summary, separateCount, showTime, executionTime)
+			} else {
+				printSummary(summary, separateCount, showTime, executionTime)
 			}
 
 			return nil
@@ -66,13 +74,37 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
 }
 
-func printSummary(summary counter.FileTypeSummary, separateCount bool) {
-	fmt.Printf("%-30s %10s\n", "Total lines:", formatNumber(summary.TotalLines))
+func PrintJsonSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64) {
+	type JsonOutput struct {
+		TotalLines int            `json:"total_lines"`
+		Counts     map[string]int `json:"counts,omitempty"`
+		Runtime    float64        `json:"runtime,omitempty"`
+	}
 
-	// Create a slice of key-value pairs for sorting
+	output := JsonOutput{
+		TotalLines: summary.TotalLines,
+	}
+	if separateCount {
+		output.Counts = summary.Counts
+	}
+	if showTime {
+		output.Runtime = executionTime
+	}
+
+	jsonData, err := json.Marshal(output)
+	if err != nil {
+		fmt.Println("Error marshalling JSON:", err)
+		return
+	}
+
+	fmt.Println(string(jsonData))
+}
+
+func printSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64) {
+	fmt.Println("total", formatNumber(summary.TotalLines))
+
 	if separateCount {
 		fmt.Println(strings.Repeat("-", 41))
 		type kv struct {
@@ -84,15 +116,17 @@ func printSummary(summary counter.FileTypeSummary, separateCount bool) {
 			sortedCounts = append(sortedCounts, kv{k, v})
 		}
 
-		// Sort by value (line count) in descending order
 		sort.Slice(sortedCounts, func(i, j int) bool {
 			return sortedCounts[i].Value > sortedCounts[j].Value
 		})
 
-		// Print sorted results
 		for _, kv := range sortedCounts {
 			fmt.Printf("%-30s %10s\n", kv.Key, formatNumber(kv.Value))
 		}
+	}
+
+	if showTime {
+		fmt.Printf("\nruntime %.2fs\n", executionTime)
 	}
 }
 
