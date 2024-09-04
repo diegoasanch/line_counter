@@ -38,6 +38,12 @@ func main() {
 				Usage:   "Print output in JSON format",
 				Value:   false,
 			},
+			&cli.BoolFlag{
+				Name:    "pretty",
+				Aliases: []string{"p"},
+				Usage:   "Pretty-print JSON output (only applicable with --json)",
+				Value:   false,
+			},
 		},
 		ArgsUsage: "DIRECTORY",
 		Action: func(c *cli.Context) error {
@@ -51,6 +57,7 @@ func main() {
 			separateCount := c.Bool("separate")
 			showTime := c.Bool("time")
 			jsonOutput := c.Bool("json")
+			prettyPrint := c.Bool("pretty")
 
 			ignorePath := filepath.Join("./", "IGNORE.txt")
 			summary, err := counter.Count(dirPath, ignorePath, separateCount)
@@ -60,12 +67,11 @@ func main() {
 
 			executionTime := time.Since(startTime).Seconds()
 			if jsonOutput {
-				PrintJsonSummary(summary, separateCount, showTime, executionTime)
+				return printJsonSummary(summary, separateCount, showTime, executionTime, prettyPrint)
 			} else {
 				printSummary(summary, separateCount, showTime, executionTime)
+				return nil
 			}
-
-			return nil
 		},
 	}
 
@@ -76,7 +82,7 @@ func main() {
 	}
 }
 
-func PrintJsonSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64) {
+func printJsonSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64, prettyPrint bool) error {
 	type JsonOutput struct {
 		TotalLines int            `json:"total_lines"`
 		Counts     map[string]int `json:"counts,omitempty"`
@@ -93,13 +99,20 @@ func PrintJsonSummary(summary counter.FileTypeSummary, separateCount bool, showT
 		output.Runtime = executionTime
 	}
 
-	jsonData, err := json.Marshal(output)
-	if err != nil {
-		fmt.Println("Error marshalling JSON:", err)
-		return
+	var jsonData []byte
+	var err error
+
+	if prettyPrint {
+		jsonData, err = json.MarshalIndent(output, "", "  ")
+	} else {
+		jsonData, err = json.Marshal(output)
 	}
 
+	if err != nil {
+		return fmt.Errorf("error marshalling JSON: %w", err)
+	}
 	fmt.Println(string(jsonData))
+	return nil
 }
 
 func printSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64) {
