@@ -6,18 +6,19 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/diegoasanch/line_counter/config"
 	"github.com/diegoasanch/line_counter/counter"
 )
 
-func PrintSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64, prettyPrint bool, jsonOutput bool) error {
-	if jsonOutput {
-		return PrintJsonSummary(summary, separateCount, showTime, executionTime, prettyPrint)
+func PrintSummary(summary counter.FileTypeSummary, cfg config.Config, executionTime float64) error {
+	if cfg.JSONOutput {
+		return PrintJsonSummary(summary, cfg, executionTime)
 	} else {
-		return PrintNormalSummary(summary, separateCount, showTime, executionTime, prettyPrint)
+		return PrintNormalSummary(summary, cfg, executionTime)
 	}
 }
 
-func PrintJsonSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64, prettyPrint bool) error {
+func PrintJsonSummary(summary counter.FileTypeSummary, cfg config.Config, executionTime float64) error {
 	type JsonOutput struct {
 		TotalLines int            `json:"total_lines"`
 		Counts     map[string]int `json:"counts,omitempty"`
@@ -27,17 +28,17 @@ func PrintJsonSummary(summary counter.FileTypeSummary, separateCount bool, showT
 	output := JsonOutput{
 		TotalLines: summary.TotalLines,
 	}
-	if separateCount {
+	if cfg.SeparateCount {
 		output.Counts = summary.Counts
 	}
-	if showTime {
+	if cfg.ShowTime {
 		output.Runtime = executionTime
 	}
 
 	var jsonData []byte
 	var err error
 
-	if prettyPrint {
+	if cfg.PrettyPrint {
 		jsonData, err = json.MarshalIndent(output, "", "  ")
 	} else {
 		jsonData, err = json.Marshal(output)
@@ -50,14 +51,14 @@ func PrintJsonSummary(summary counter.FileTypeSummary, separateCount bool, showT
 	return nil
 }
 
-func PrintNormalSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64, prettyPrint bool) error {
-	if prettyPrint {
+func PrintNormalSummary(summary counter.FileTypeSummary, cfg config.Config, executionTime float64) error {
+	if cfg.PrettyPrint {
 		fmt.Printf("total %s\n", FormatNumber(summary.TotalLines))
 	} else {
 		fmt.Printf("total %d\n", summary.TotalLines)
 	}
 
-	if separateCount {
+	if cfg.SeparateCount {
 		fmt.Println(strings.Repeat("-", 41))
 		type kv struct {
 			Key   string
@@ -73,7 +74,7 @@ func PrintNormalSummary(summary counter.FileTypeSummary, separateCount bool, sho
 		})
 
 		for _, kv := range sortedCounts {
-			if prettyPrint {
+			if cfg.PrettyPrint {
 				fmt.Printf("%-30s %10s\n", kv.Key, FormatNumber(kv.Value))
 			} else {
 				fmt.Printf("%-30s %10d\n", kv.Key, kv.Value)
@@ -81,7 +82,7 @@ func PrintNormalSummary(summary counter.FileTypeSummary, separateCount bool, sho
 		}
 	}
 
-	if showTime {
+	if cfg.ShowTime {
 		fmt.Printf("\nruntime %.2fs\n", executionTime)
 	}
 

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/diegoasanch/line_counter/config"
 	"github.com/diegoasanch/line_counter/counter"
 	"github.com/diegoasanch/line_counter/formatter"
 	"github.com/urfave/cli/v2"
@@ -20,6 +21,8 @@ func main() {
 		Flags:                  flags,
 		ArgsUsage:              "DIRECTORY",
 		Action:                 action,
+		Version:                "0.0.1",
+		EnableBashCompletion:   true,
 	}
 
 	err := app.Run(os.Args)
@@ -34,25 +37,21 @@ var flags = []cli.Flag{
 		Name:    "separate",
 		Aliases: []string{"s"},
 		Usage:   "Get separate per-file count",
-		Value:   false,
 	},
 	&cli.BoolFlag{
 		Name:    "time",
 		Aliases: []string{"t"},
 		Usage:   "Show total execution time",
-		Value:   false,
 	},
 	&cli.BoolFlag{
 		Name:    "json",
 		Aliases: []string{"j"},
 		Usage:   "Print output in JSON format",
-		Value:   false,
 	},
 	&cli.BoolFlag{
 		Name:    "pretty",
 		Aliases: []string{"p"},
 		Usage:   "Enable pretty formatting. For JSON output: indent the JSON. For normal output: use abbreviated numbers (e.g., 23K instead of 23000)",
-		Value:   false,
 	},
 }
 
@@ -63,19 +62,21 @@ func action(c *cli.Context) error {
 	}
 	startTime := time.Now()
 
+	cfg := config.Config{
+		SeparateCount: c.Bool("separate"),
+		ShowTime:      c.Bool("time"),
+		JSONOutput:    c.Bool("json"),
+		PrettyPrint:   c.Bool("pretty"),
+	}
+
 	dirPath := c.Args().Get(0)
-
-	separateCount := c.Bool("separate")
-	showTime := c.Bool("time")
-	jsonOutput := c.Bool("json")
-	prettyPrint := c.Bool("pretty")
-
 	ignorePath := filepath.Join("./", "IGNORE.txt")
-	summary, err := counter.Count(dirPath, ignorePath, separateCount)
+
+	summary, err := counter.Count(dirPath, ignorePath, cfg.SeparateCount)
 	if err != nil {
 		return fmt.Errorf("error counting lines: %w", err)
 	}
 
 	executionTime := time.Since(startTime).Seconds()
-	return formatter.PrintSummary(summary, separateCount, showTime, executionTime, prettyPrint, jsonOutput)
+	return formatter.PrintSummary(summary, cfg, executionTime)
 }
