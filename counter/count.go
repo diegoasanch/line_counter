@@ -74,6 +74,7 @@ func countFileLines(filePath string) (int, error) {
 	// Buffer for reading the file in chunks
 	buf := make([]byte, 1024)
 	lineCount := 0
+	prevChar := byte(0)
 
 	// Read the file and count newlines
 	for {
@@ -83,10 +84,18 @@ func countFileLines(filePath string) (int, error) {
 			return 0, err
 		}
 		// Count newline characters in the current chunk
-		for _, b := range buf[:n] {
-			if b == '\n' {
+		for i, b := range buf[:n] {
+			if b == '\n' && prevChar != '\r' {
 				lineCount++
+			} else if b == '\r' {
+				lineCount++
+				// Check if the next character is '\n' to avoid double counting
+				if i+1 < n && buf[i+1] == '\n' {
+					prevChar = b
+					continue
+				}
 			}
+			prevChar = b
 		}
 		// Break if end of file
 		if err == io.EOF {
