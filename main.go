@@ -47,11 +47,12 @@ func main() {
 		},
 		ArgsUsage: "DIRECTORY",
 		Action: func(c *cli.Context) error {
+			if c.NArg() < 1 {
+				cli.ShowAppHelp(c)
+				return fmt.Errorf("\nerror: directory path is required")
+			}
 			startTime := time.Now()
 
-			if c.NArg() < 1 {
-				return fmt.Errorf("directory path is required")
-			}
 			dirPath := c.Args().Get(0)
 
 			separateCount := c.Bool("separate")
@@ -62,7 +63,7 @@ func main() {
 			ignorePath := filepath.Join("./", "IGNORE.txt")
 			summary, err := counter.Count(dirPath, ignorePath, separateCount)
 			if err != nil {
-				return fmt.Errorf("[ERROR] %w", err)
+				return fmt.Errorf("error counting lines: %w", err)
 			}
 
 			executionTime := time.Since(startTime).Seconds()
@@ -76,7 +77,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 }
