@@ -13,10 +13,10 @@ Line Counter is a command-line tool that counts the lines of code in a directory
 
 ## Installation
 
-To install Line Counter, make sure you have Go installed on your system, then run:
+To install Line Counter, make sure you have Go installed on your system and the [`GOPATH` is set](https://go.dev/wiki/SettingGOPATH), then run:
 
 ```bash
-go get github.com/diegoasanch/line_counter
+go install github.com/diegoasanch/line_counter@latest
 ```
 
 ## Usage
