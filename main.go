@@ -41,7 +41,7 @@ func main() {
 			&cli.BoolFlag{
 				Name:    "pretty",
 				Aliases: []string{"p"},
-				Usage:   "Pretty-print JSON output (only applicable with --json)",
+				Usage:   "Enable pretty formatting. For JSON output: indent the JSON. For normal output: use abbreviated numbers (e.g., 23K instead of 23000)",
 				Value:   false,
 			},
 		},
@@ -69,8 +69,7 @@ func main() {
 			if jsonOutput {
 				return printJsonSummary(summary, separateCount, showTime, executionTime, prettyPrint)
 			} else {
-				printSummary(summary, separateCount, showTime, executionTime)
-				return nil
+				return printSummary(summary, separateCount, showTime, executionTime, prettyPrint)
 			}
 		},
 	}
@@ -115,8 +114,12 @@ func printJsonSummary(summary counter.FileTypeSummary, separateCount bool, showT
 	return nil
 }
 
-func printSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64) {
-	fmt.Println("total", formatNumber(summary.TotalLines))
+func printSummary(summary counter.FileTypeSummary, separateCount bool, showTime bool, executionTime float64, prettyPrint bool) error {
+	if prettyPrint {
+		fmt.Printf("total %s\n", formatNumber(summary.TotalLines))
+	} else {
+		fmt.Printf("total %d\n", summary.TotalLines)
+	}
 
 	if separateCount {
 		fmt.Println(strings.Repeat("-", 41))
@@ -134,13 +137,19 @@ func printSummary(summary counter.FileTypeSummary, separateCount bool, showTime 
 		})
 
 		for _, kv := range sortedCounts {
-			fmt.Printf("%-30s %10s\n", kv.Key, formatNumber(kv.Value))
+			if prettyPrint {
+				fmt.Printf("%-30s %10s\n", kv.Key, formatNumber(kv.Value))
+			} else {
+				fmt.Printf("%-30s %10d\n", kv.Key, kv.Value)
+			}
 		}
 	}
 
 	if showTime {
 		fmt.Printf("\nruntime %.2fs\n", executionTime)
 	}
+
+	return nil
 }
 
 func formatNumber(n int) string {
