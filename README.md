@@ -31,6 +31,7 @@ line_counter [options] DIRECTORY
 - `-t, --time`: Show total execution time
 - `-j, --json`: Print output in JSON format
 - `-p, --pretty`: Enable pretty formatting (abbreviated numbers for normal output, indented JSON for JSON output)
+- `-i, --ignore`: Path to the ignore file (default: ./IGNORE.txt)
 
 #### Combining Options
 

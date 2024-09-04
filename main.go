@@ -53,6 +53,12 @@ var flags = []cli.Flag{
 		Aliases: []string{"p"},
 		Usage:   "Enable pretty formatting. For JSON output: indent the JSON. For normal output: use abbreviated numbers (e.g., 23K instead of 23000)",
 	},
+	&cli.StringFlag{
+		Name:    "ignore",
+		Aliases: []string{"i"},
+		Usage:   "Path to the ignore file (default: ./IGNORE.txt)",
+		Value:   filepath.Join("./", "IGNORE.txt"),
+	},
 }
 
 func action(c *cli.Context) error {
