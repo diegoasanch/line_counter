@@ -14,15 +14,11 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:  "Line counter",
-		Usage: "Count lines of code in a directory",
+		Name:                   "Line counter",
+		Usage:                  "Count lines of code in a directory",
+		UsageText:              "line_counter [options] DIRECTORY",
+		UseShortOptionHandling: true,
 		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:     "dir",
-				Aliases:  []string{"d"},
-				Usage:    "Directory to count lines in",
-				Required: true,
-			},
 			&cli.BoolFlag{
 				Name:    "separate",
 				Aliases: []string{"s"},
@@ -36,13 +32,14 @@ func main() {
 				Value:   false,
 			},
 		},
+		ArgsUsage: "DIRECTORY",
 		Action: func(c *cli.Context) error {
 			startTime := time.Now()
 
-			dirPath := c.String("dir")
-			if dirPath == "" {
+			if c.NArg() < 1 {
 				return fmt.Errorf("directory path is required")
 			}
+			dirPath := c.Args().Get(0)
 
 			separateCount := c.Bool("separate")
 			showTime := c.Bool("time")
